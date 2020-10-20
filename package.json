@@ -18,7 +18,9 @@
   },
   "homepage": "https://github.com/leslievill/Employee-Manager#readme",
   "dependencies": {
+    "console-table-printer": "^2.4.23",
     "console.table": "^0.10.0",
+    "figlet": "^1.5.0",
     "inquirer": "^7.3.3",
     "mysql": "^2.18.1"
   }
