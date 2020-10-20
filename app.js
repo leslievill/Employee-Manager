@@ -1,10 +1,11 @@
 const mysql = require('mysql');
 const inquirer = require('inquirer');
 const { printTable } = require('console-table-printer');
+const figlet = require ('figlet');
 let roles;
 let departments;
 let managers;
-let employees;
+
 
 var connection = mysql.createConnection({
     host: "localhost",
@@ -14,6 +15,10 @@ var connection = mysql.createConnection({
     
     password: "rootroot",
     database: "employees_db"
+  });
+
+  figlet('Employee Manager', (err, result)=>{
+      console.log(err || result);
   });
 
   
@@ -32,26 +37,28 @@ var connection = mysql.createConnection({
         name: "choices",
         type: "list",
         message: "What would you like to do?",
-        choices: ["ADD", "VIEW", "UPDATE", "DELETE"]
+        choices: ["ADD", "VIEW", "UPDATE", "DELETE", "EXIT"]
       })
       .then(function(answer) {
         if (answer.choices === "ADD") {
           addSomething()
-          
           console.log(answer.choices);
         }
         else if (answer.choices === "VIEW") {
 
         }
-        // else if(answer.postOrBid === "BID") {
-        //   bidAuction();
-        // } else{
-        
-        //else{
-        //   connection.end();
-        // }
-      });
-  }
+        else if(answer.choices === "VIEW") {
+        viewSomething();
+        }
+        else if (answer.choices === "EXIT") {
+            console.log("Good Day");
+            connection.end();
+        }
+        else{
+            connection.end();
+        }
+
+  });
 
 
 getRoles = () => {
@@ -84,7 +91,7 @@ addSomething = () => {
       name: "add",
       type: "list",
       message: "What would you like to add?",
-      choices: ["DEPARTMENT", "ROLE", "EMPLOYEE"]
+      choices: ["DEPARTMENT", "ROLE", "EMPLOYEE", "EXIT"]
     }
   ]).then(function(answer) {
     if (answer.add === "DEPARTMENT") {
@@ -97,7 +104,9 @@ addSomething = () => {
     }
     else if (answer.add === "EMPLOYEE") {
       console.log("Add a new: " + answer.add);
-    } else {
+      addEmployee();
+    } 
+    else {
       connection.end();
     }
   })
@@ -115,6 +124,7 @@ addDepartment = () => {
       if (err) throw err;
       
       console.log("1 new department added: " + answer.department);
+      start();
     }) 
   })
 };
@@ -135,12 +145,12 @@ addRole = () => {
     {
       name: "salary",
       type: "input",
-      message: "What is the salary for this possition?"
+      message: "What is the salary for this position?"
     },
     {
       name: "department_id",
       type: "list",
-      message: "What is the department for this possition?",
+      message: "What is the department for this position?",
       choices: departmentOptions
     },
   ]).then(function(answer) {
@@ -154,38 +164,129 @@ addRole = () => {
       if (err) throw err;
 
       console.log("1 new role added: " + answer.title);
+      start();
     }) 
   })
 };
 
-function addEmployee() {
+addEmployee = () => {
+    let roleOptions = [];
+    for (i =0; i < roles.length; i++) {
+        roleOptions.push(Object(roles[i]));
+    };
+    let managerOptions = [];
+    for (i =0; i < managers.length; i++) {
+        managerOptions.push(Object(managers[i]));
+        console.log(managerOptions[i].managers);
+    }
   inquirer.prompt([
     {
       name: "firstName",
       type: "input",
-      message: "What is the employee first name?"
+      message: "What is the employee's first name?"
     },
     {
       name: "lastName",
       type: "input",
-      message: "What is the employee last name?"
+      message: "What is the employee's last name?"
     },
     {
       name: "role_id",
-      type: "input",
-      message: "What is the role ID of the employee?"
+      type: "list",
+      message: "What department does this position belong to?",
+      choices: function() {
+        var choiceArray = [];
+        for (var i = 0; i < roleOptions.length; i++) {
+            choiceArray.push(roleOptions[i].title)
+          }
+          return choiceArray;
+      }
     },
     {
       name: "manager_id",
       type: "input",
-      message: "What is the role ID of the employee?"
+      message: "Who is the employee's manager?",
+      choices: function() {
+        var choiceArray = [];
+        for (var i = 0; i < managerOptions.length; i++) {
+          choiceArray.push(managerOptions[i].managers)
+        }
+        return choiceArray;
+      }
     }
 
   ]).then(function(answer) {
-    connection.query(`INSERT INTO role (title, salary, department_id) VALUES ('${answer.title}', '${answer.salary}', '${answer.department_id}')`, function(err, res) {
+    // console.log(answer.role_id);
+    // console.log(roleOptions);
+    for (i = 0; i < roleOptions.length; i++) {
+        // console.log(departmentOptions[i].id);
+        if (roleOptions[i].title === answer.role_id) {
+          console.log(roleOptions[i].id)
+          // console.log(roleOptions[i].id)
+          role_id = roleOptions[i].id
+          console.log(role_id);
+          // console.log(role_id);
+        }
+      }
+  
+      for (i = 0; i < managerOptions.length; i++) {
+        if (managerOptions[i].managers === answer.manager_id) {
+          manager_id = managerOptions[i].id
+        }
+      }
+    
+      connection.query(`INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ('${answer.first_name}', '${answer.last_name}', ${role_id}, ${manager_id})`, function(err, res) {
       if (err) throw err;
-      console.log("1 new role added: " + answer.title);
+      console.log("1 new employee added: " + answer.first_name + " " + answer.last_name);
+      start()
     }) 
   })
 };
+viewSomething = () => {
+    inquirer.prompt([
+      {
+        name: "viewChoice",
+        type: "list",
+        message: "What would you like to view?",
+        choices: ["DEPARTMENTS", "ROLES", "EMPLOYEES", "EXIT"]
+      }
+    ]).then(answer => {
+      console.log(answer.viewChoice);
+      if (answer.viewChoice === "DEPARTMENTS") {
+        viewDepartments();
+      }
+      else if (answer.viewChoice === "ROLES") {
+        viewRoles();
+      }
+      else if (answer.viewChoice === "EMPLOYEES") {
+        viewEmployees();
+      }
+      else if (answer.viewChoice === "EXIT") {
+        console.log("Bye!!!");
+        connection.end();
+      }
+    })
+  };
+  viewDepartments = () => {
+    connection.query("SELECT * FROM department", function(err, res) {
+      if (err) throw err;
+      console.table(res);
+      start();
+    });
+  };
+  viewRoles = () => {
+    connection.query("SELECT * FROM role", function(err, res) {
+      if (err) throw err;
+      console.table(res);
+      start();
+    });
+  };
+  viewEmployees = () => {
+    connection.query("SELECT * FROM employee", function(err, res) {
+      if (err) throw err;
+      console.table(res);
+      start();
+    });
+  };
 
+}
